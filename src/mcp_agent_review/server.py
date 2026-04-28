@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """MCP server that exposes agentic code review as a tool for Claude Code."""
 
+import asyncio
 import os
 
 from mcp.server.fastmcp import Context, FastMCP
@@ -46,8 +47,12 @@ async def review_code(
     if not diff:
         return "No code changes detected. Nothing to review."
 
+    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("GITHUB_TOKEN")
+    if not api_key:
+        return "Error: OPENAI_API_KEY or GITHUB_TOKEN environment variable is required."
+
     client = OpenAI(
-        api_key=os.environ.get("OPENAI_API_KEY") or os.environ.get("GITHUB_TOKEN"),
+        api_key=api_key,
         base_url=os.environ.get("OPENAI_BASE_URL", "https://models.github.ai/inference"),
         max_retries=3,
     )
@@ -64,7 +69,9 @@ async def review_code(
     def on_tool_progress(round_num, msg):
         progress_messages.append(msg)
 
-    raw_review = run_agentic_review(client, messages, on_progress=on_tool_progress)
+    raw_review = await asyncio.to_thread(
+        run_agentic_review, client, messages, on_progress=on_tool_progress
+    )
 
     if progress_messages and ctx:
         await ctx.info(f"Completed {len(progress_messages)} tool rounds")
@@ -73,7 +80,9 @@ async def review_code(
         return "(max tool rounds reached, no final response)"
 
     await _progress(3, 4, "Self-critique: filtering low-confidence findings...")
-    final = run_self_critique(client, messages) or raw_review
+    final = await asyncio.to_thread(run_self_critique, client, messages)
+    if final is None:
+        final = raw_review
 
     await _progress(4, 4, "Review complete.")
     return format_review_output(final)

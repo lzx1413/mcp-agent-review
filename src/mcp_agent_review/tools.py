@@ -3,24 +3,10 @@ import os
 import subprocess
 from fnmatch import fnmatch
 
+from .constants import SENSITIVE_PATTERNS, is_sensitive
 from .git_utils import get_git_root, run_in_repo
 
 MAX_FILE_LINES = int(os.environ.get("MAX_FILE_LINES", "1000"))
-
-SENSITIVE_PATTERNS = [
-    ".env", ".env.*",
-    "*.pem", "*.key", "*.p12", "*.pfx",
-    "*.jks", "*.keystore",
-    "id_rsa", "id_ed25519", "id_ecdsa",
-    "credentials.json", "service-account*.json",
-    ".netrc", ".pgpass", ".my.cnf",
-    "*.secret", "secrets.*",
-]
-
-
-def _is_sensitive(path: str) -> bool:
-    basename = os.path.basename(path)
-    return any(fnmatch(basename, pat) for pat in SENSITIVE_PATTERNS)
 
 
 GREP_INCLUDES = [
@@ -198,7 +184,7 @@ def execute_tool_call(name: str, args: dict) -> str:
             path = _safe_resolve(root, args["path"])
             if path is None:
                 return f"Access denied: path escapes repository"
-            if _is_sensitive(args["path"]):
+            if is_sensitive(args["path"]):
                 return f"Access denied: sensitive file blocked: {args['path']}"
             if not os.path.exists(path):
                 return f"File not found: {args['path']}"
@@ -220,7 +206,7 @@ def execute_tool_call(name: str, args: dict) -> str:
                 includes = list(GREP_INCLUDES)
             excludes = [f"--exclude={pat}" for pat in SENSITIVE_PATTERNS]
             return run_in_repo(
-                ["grep", "-rn", "--no-follow"] + includes + excludes + ["-E", args["pattern"], search_path],
+                ["grep", "-rn", "--no-follow"] + includes + excludes + ["-E", "--", args["pattern"], search_path],
                 max_lines=100,
                 timeout=5,
             )
@@ -228,7 +214,7 @@ def execute_tool_call(name: str, args: dict) -> str:
         elif name == "git_blame":
             if _safe_resolve(root, args["path"]) is None:
                 return "Access denied: path escapes repository"
-            if _is_sensitive(args["path"]):
+            if is_sensitive(args["path"]):
                 return f"Access denied: sensitive file blocked: {args['path']}"
             return run_in_repo(
                 [

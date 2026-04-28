@@ -20,8 +20,8 @@ An MCP (Model Context Protocol) server that provides **agentic code review** pow
 pip install mcp-agent-review
 
 # From source
-git clone https://github.com/lzx1413/gpt-review.git
-cd gpt-review
+git clone https://github.com/lzx1413/mcp-agent-review
+cd mcp_agent_review
 pip install .
 ```
 

@@ -68,7 +68,17 @@ def run_agentic_review(
             )
 
         for tc in choice.message.tool_calls:
-            args = json.loads(tc.function.arguments)
+            try:
+                args = json.loads(tc.function.arguments)
+            except (json.JSONDecodeError, TypeError):
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "content": f"Error: invalid JSON in tool arguments",
+                    }
+                )
+                continue
             result = execute_tool_call(tc.function.name, args)
             messages.append(
                 {

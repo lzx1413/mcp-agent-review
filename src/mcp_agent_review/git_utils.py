@@ -2,10 +2,10 @@ import os
 import re
 import subprocess
 from fnmatch import fnmatch
-from functools import lru_cache
+
+from .constants import SENSITIVE_PATTERNS
 
 
-@lru_cache(maxsize=1)
 def get_git_root() -> str:
     result = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True
@@ -126,8 +126,6 @@ def merge_ranges(
 def read_changed_files_context(
     files: list[str], diff: str, max_file_lines: int = 1000
 ) -> str:
-    from .tools import SENSITIVE_PATTERNS
-
     root = get_git_root()
     file_ranges = parse_diff_line_ranges(diff)
     parts = []

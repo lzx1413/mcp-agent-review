@@ -4,7 +4,8 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from mcp_agent_review.tools import _safe_resolve, _is_sensitive, execute_tool_call
+from mcp_agent_review.tools import _safe_resolve, execute_tool_call
+from mcp_agent_review.constants import is_sensitive
 
 
 class TestSafeResolve:
@@ -113,38 +114,38 @@ class TestExecuteToolCall:
 
 class TestIsSensitive:
     def test_env_file(self):
-        assert _is_sensitive(".env") is True
+        assert is_sensitive(".env") is True
 
     def test_env_variant(self):
-        assert _is_sensitive(".env.production") is True
+        assert is_sensitive(".env.production") is True
 
     def test_pem_file(self):
-        assert _is_sensitive("server.pem") is True
+        assert is_sensitive("server.pem") is True
 
     def test_key_file(self):
-        assert _is_sensitive("private.key") is True
+        assert is_sensitive("private.key") is True
 
     def test_credentials_json(self):
-        assert _is_sensitive("credentials.json") is True
+        assert is_sensitive("credentials.json") is True
 
     def test_service_account(self):
-        assert _is_sensitive("service-account-key.json") is True
+        assert is_sensitive("service-account-key.json") is True
 
     def test_ssh_key(self):
-        assert _is_sensitive("id_rsa") is True
-        assert _is_sensitive("id_ed25519") is True
+        assert is_sensitive("id_rsa") is True
+        assert is_sensitive("id_ed25519") is True
 
     def test_netrc(self):
-        assert _is_sensitive(".netrc") is True
+        assert is_sensitive(".netrc") is True
 
     def test_normal_file_allowed(self):
-        assert _is_sensitive("main.py") is False
-        assert _is_sensitive("README.md") is False
-        assert _is_sensitive("pyproject.toml") is False
+        assert is_sensitive("main.py") is False
+        assert is_sensitive("README.md") is False
+        assert is_sensitive("pyproject.toml") is False
 
     def test_path_with_directories(self):
-        assert _is_sensitive("config/.env") is True
-        assert _is_sensitive("certs/server.pem") is True
+        assert is_sensitive("config/.env") is True
+        assert is_sensitive("certs/server.pem") is True
 
 
 class TestSensitiveFileBlocking:
